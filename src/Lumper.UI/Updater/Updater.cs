@@ -176,20 +176,29 @@ namespace Lumper.UI.Updater
                 return null;
         }
         /// <summary>
-        /// Returns the URL to the download link for the OS-specific version. OS should be one of: 'linux', 'win'
+        /// Returns the URL to the download link for the OS-specific version.
         /// </summary>
         /// <returns></returns>
-        private static string GetPath(GithubUpdate assets, string OS)
+        private static string GetPath(GithubUpdate assets, OSPlatform OS)
         {
-            for (int i = 0; i < assets.Assets.Length; i++)
+            string operatingSystem = "";
+
+            if (OS == OSPlatform.Windows)
+                operatingSystem = "win";
+            else if (OS == OSPlatform.Linux)
+                operatingSystem = "linux";
+            else
+                throw new Exception("Unsupported OS: "+ nameof(OS));
+
+            foreach (Asset asset in assets.Assets)
             {
-                if (assets.Assets[i].Name.Contains(OS, StringComparison.CurrentCultureIgnoreCase))
+                if (asset.Name.Contains(operatingSystem, StringComparison.OrdinalIgnoreCase))
                 {
-                    return assets.Assets[i].BrowserDownloadUrl;
+                    return asset.BrowserDownloadUrl;
                 }
 
             }
-            return null;
+            throw new Exception("Could not find download link for " + nameof(OS));
         }
 
         /// <summary>
@@ -249,7 +258,7 @@ namespace Lumper.UI.Updater
             {
                 try
                 { 
-                    string fileURL = GetPath(assets, "linux");
+                    string fileURL = GetPath(assets, OSPlatform.Linux);
                     string fileName = "linux_" + latest.major + "." + latest.minor + "." + latest.patch + ".zip";
                     string directoryName = fileName + "temp";
 
@@ -296,7 +305,7 @@ namespace Lumper.UI.Updater
             {
                 try
                 {
-                    string fileURL = GetPath(assets, "win");
+                    string fileURL = GetPath(assets, OSPlatform.Windows);
 
                     string fileName = "windows_" + latest.major + "." + latest.minor + "." + latest.patch + ".zip";
                     string directoryName = fileName + "temp";
