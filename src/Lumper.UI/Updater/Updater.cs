@@ -14,6 +14,8 @@ using Newtonsoft.Json;
 using Lumper.UI.ViewModels;
 using Avalonia.Controls;
 using System.IO;
+using MsBox.Avalonia.Enums;
+using MsBox.Avalonia;
 
 namespace Lumper.UI.Updater
 {
@@ -47,7 +49,7 @@ namespace Lumper.UI.Updater
             public override string ToString() => $"{major}.{minor}.{patch}";
         }
 
-        private static MMP GetMMPVersion(string s)
+        private static MMP? GetMMPVersion(string s)
         {
             //match pattern of xx.yy.zz
             Match match = MMPRegex().Match(s);
@@ -69,7 +71,8 @@ namespace Lumper.UI.Updater
                 }
 
             }
-            return version;
+            throw new Exception("Could not parse Major/Minor/Patch version.");
+            return null;
 
         }
         static void ExecuteCommand(string command)
@@ -126,9 +129,22 @@ namespace Lumper.UI.Updater
 
             //parse tag name to find the current and latest version
             //finding the format of xx.yy.zz
-            MMP current = GetMMPVersion(Assembly.GetExecutingAssembly().GetName().Version.ToString());
-            MMP latest = GetMMPVersion(assets.TagName);
+            MMP? current;
+            MMP? latest;
+            try
+            {
+                current = GetMMPVersion(Assembly.GetExecutingAssembly().GetName().Version.ToString());
+                latest = GetMMPVersion(assets.TagName);
+            } catch (Exception ex)
+            {
+                ButtonResult result = await MessageBoxManager
+                .GetMessageBoxStandard(
+                    "Error",
+                    "Could not parse version number.", ButtonEnum.Ok)
+                .ShowWindowDialogAsync(Program.Desktop.MainWindow);
+                return null;
 
+            }
             if (current != latest)
                 return latest;
             else
