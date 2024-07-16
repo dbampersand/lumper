@@ -180,8 +180,18 @@ namespace Lumper.UI.Updater
 
                 System.IO.Compression.ZipFile.ExtractToDirectory(fileName, directoryName);
 
+                string currentDirectory = System.IO.Directory.GetCurrentDirectory();
+
                 //copy files from the temp directory to the root directory, then delete the temp directory and run the program again
-                ExecuteCommand("yes | cp -rf  \"" + System.IO.Directory.GetCurrentDirectory() + "/" + fileName + "temp\"" + "&& rm \"" + fileName + "\" && rm -rf \"" + System.IO.Directory.GetCurrentDirectory() + "/" + directoryName + "\"" + " && ./Lumper.UI");
+                string command =
+                    $@"
+                    yes | cp -rf ""{currentDirectory}\{directoryName}"" 
+                    && rm ""{currentDirectory}\{fileName}""  
+                    && rm -rf ""{currentDirectory}\{directoryName}"" 
+                    && ./Lumper.UI
+                    ".Replace(Environment.NewLine, " ").Replace("\n", "");
+
+                ExecuteCommand(command);
 
                 //exit so we can overwrite the executable
                 System.Environment.Exit(0);
