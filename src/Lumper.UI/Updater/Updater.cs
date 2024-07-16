@@ -125,7 +125,19 @@ namespace Lumper.UI.Updater
         
         public static async Task<MMP?> CheckForUpdate()
         {
-            GHUpdate assets = await GetGithubUpdates();
+            GHUpdate assets;
+            try
+            {
+                assets = await GetGithubUpdates();
+            } catch (Exception ex)
+            {
+                ButtonResult result = await MessageBoxManager
+                .GetMessageBoxStandard(
+                    "Error",
+                    ex.Message, ButtonEnum.Ok)
+                .ShowWindowDialogAsync(Program.Desktop.MainWindow);
+                return null;
+            }
 
             //parse tag name to find the current and latest version
             //finding the format of xx.yy.zz
@@ -180,80 +192,114 @@ namespace Lumper.UI.Updater
 
             GHUpdate assets = await GetGithubUpdates();
 
-            MMP latest = GetMMPVersion(assets.TagName);
+            MMP? latest;
+            try
+            {
+                latest = GetMMPVersion(assets.TagName);
+            } catch (Exception ex)
+            {
+                ButtonResult result = await MessageBoxManager
+                .GetMessageBoxStandard(
+                    "Error",
+                    "Could not parse version number.", ButtonEnum.Ok)
+                .ShowWindowDialogAsync(Program.Desktop.MainWindow);
+                return;
+            }
 
             HttpClient client = new HttpClient();
             //NOTE: linux is untested
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                string fileURL = GetPath(assets, "linux");
-                string fileName = "linux_" + latest.major + "." + latest.minor + "." + latest.patch + ".zip";
-                string directoryName = fileName + "temp";
+                try
+                { 
+                    string fileURL = GetPath(assets, "linux");
+                    string fileName = "linux_" + latest.major + "." + latest.minor + "." + latest.patch + ".zip";
+                    string directoryName = fileName + "temp";
 
-                //download and unzip to a temp directory
-                await DownloadFile(new Uri(fileURL), client, fileName);
+                    //download and unzip to a temp directory
+                    await DownloadFile(new Uri(fileURL), client, fileName);
 
-                if (Directory.Exists(directoryName))
+                    if (Directory.Exists(directoryName))
+                    {
+                        Directory.Delete(directoryName, true);
+                    }
+
+                    System.IO.Compression.ZipFile.ExtractToDirectory(fileName, directoryName);
+
+                    string currentDirectory = System.IO.Directory.GetCurrentDirectory();
+
+                    //wait 2 seconds for the process to fully exit before
+                    //copying files from the temp directory to the root directory,
+                    //then delete the temp directory and run the program again
+                    string command =
+                        $@"
+                        sleep 2
+                        && yes | cp -rf ""{currentDirectory}\{directoryName}"" 
+                        && rm ""{currentDirectory}\{fileName}""  
+                        && rm -rf ""{currentDirectory}\{directoryName}"" 
+                        && ./Lumper.UI
+                        ".Replace(Environment.NewLine, " ").Replace("\n", " ");
+
+                    ExecuteCommand(command);
+
+                    //exit so we can overwrite the executable
+                    System.Environment.Exit(0);
+                } catch (Exception ex)
                 {
-                    Directory.Delete(directoryName, true);
+                    ButtonResult result = await MessageBoxManager
+                    .GetMessageBoxStandard(
+                        "Error",
+                        "IO error: " + ex.Message, ButtonEnum.Ok)
+                    .ShowWindowDialogAsync(Program.Desktop.MainWindow);
+                    return;
                 }
-
-                System.IO.Compression.ZipFile.ExtractToDirectory(fileName, directoryName);
-
-                string currentDirectory = System.IO.Directory.GetCurrentDirectory();
-
-                //wait 2 seconds for the process to fully exit before
-                //copying files from the temp directory to the root directory,
-                //then delete the temp directory and run the program again
-                string command =
-                    $@"
-                    sleep 2
-                    && yes | cp -rf ""{currentDirectory}\{directoryName}"" 
-                    && rm ""{currentDirectory}\{fileName}""  
-                    && rm -rf ""{currentDirectory}\{directoryName}"" 
-                    && ./Lumper.UI
-                    ".Replace(Environment.NewLine, " ").Replace("\n", " ");
-
-                ExecuteCommand(command);
-
-                //exit so we can overwrite the executable
-                System.Environment.Exit(0);
             }
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                string fileURL = GetPath(assets, "win");
-
-                string fileName = "windows_" + latest.major + "." + latest.minor + "." + latest.patch + ".zip";
-                string directoryName = fileName + "temp";
-                //download and unzip to a temp directory
-                await DownloadFile(new Uri(fileURL), client, fileName);
-
-                if (Directory.Exists(directoryName))
+                try
                 {
-                    Directory.Delete(directoryName, true);
+                    string fileURL = GetPath(assets, "win");
+
+                    string fileName = "windows_" + latest.major + "." + latest.minor + "." + latest.patch + ".zip";
+                    string directoryName = fileName + "temp";
+                    //download and unzip to a temp directory
+                    await DownloadFile(new Uri(fileURL), client, fileName);
+
+                    if (Directory.Exists(directoryName))
+                    {
+                        Directory.Delete(directoryName, true);
+                    }
+                    System.IO.Compression.ZipFile.ExtractToDirectory(fileName, directoryName);
+
+                    string currentDirectory = System.IO.Directory.GetCurrentDirectory();
+
+                    //wait 2 seconds for the process to fully exit before
+                    //copying files from the temp directory to the root directory,
+                    //then delete the temp directory and run the program again
+                    string command =
+                        $@"
+                        sleep 2
+                        && xcopy /s /Y ""{currentDirectory}\{directoryName}"" 
+                        && rm ""{currentDirectory}\{fileName}""  
+                        && rmdir /s /q ""{currentDirectory}\{directoryName}"" 
+                        && Lumper.UI.exe
+                        ".Replace(Environment.NewLine, " ").Replace("\n", " ");
+
+                    ExecuteCommand(command);
+
+                    //exit so we can overwrite the executable
+                    System.Environment.Exit(0);
                 }
-                System.IO.Compression.ZipFile.ExtractToDirectory(fileName, directoryName);
-
-                string currentDirectory = System.IO.Directory.GetCurrentDirectory();
-
-                //wait 2 seconds for the process to fully exit before
-                //copying files from the temp directory to the root directory,
-                //then delete the temp directory and run the program again
-                string command =
-                    $@"
-                    sleep 2
-                    && xcopy /s /Y ""{currentDirectory}\{directoryName}"" 
-                    && rm ""{currentDirectory}\{fileName}""  
-                    && rmdir /s /q ""{currentDirectory}\{directoryName}"" 
-                    && Lumper.UI.exe
-                    ".Replace(Environment.NewLine, " ").Replace("\n", " ");
-
-                ExecuteCommand(command);
-
-                //exit so we can overwrite the executable
-                System.Environment.Exit(0);
-
+                catch (Exception ex)
+                {
+                    ButtonResult result = await MessageBoxManager
+                    .GetMessageBoxStandard(
+                        "Error",
+                        "IO error: "+ex.Message, ButtonEnum.Ok)
+                    .ShowWindowDialogAsync(Program.Desktop.MainWindow);
+                    return;
+                }
             }
 
 
