@@ -23,7 +23,10 @@ namespace Lumper.UI.Updater
     {
         [GeneratedRegex(@"^(\d+)\.(\d+)\.(\d+)")]
         private static partial Regex VersionRegex();
-        //struct for deserializing JSON objects
+        /// <summary>
+        /// record for deserializing JSON objects 
+        /// given in the GitHub JSON API response 
+        /// </summary>
         private record Asset
         {
             [JsonProperty("browser_download_url")]
@@ -31,7 +34,11 @@ namespace Lumper.UI.Updater
             [JsonProperty("name")]
             public string Name { get; set;  }
         }
-        //struct for deserializing JSON objects
+        /// <summary>
+        ///  record for deserializing Github API response data
+        ///  see https://api.github.com/repos/momentum-mod/lumper/releases for the full format
+        /// </summary>
+
         private record GHUpdate
         {
             [JsonProperty("tag_name")]
@@ -40,7 +47,12 @@ namespace Lumper.UI.Updater
             public Asset[] Assets { get; set; }
 
         }
-        //Major/Minor/Patch format
+        /// <summary>
+        /// Major/Minor/Patch format
+        /// </summary>
+        /// <param name="major">First digits of the version format</param>
+        /// <param name="minor">Second digits of the version format</param>
+        /// <param name="patch">Third digits of the version format</param>
         public sealed record Version(int major, int minor, int patch)
         {
             public int Major { get; } = major;
@@ -48,8 +60,11 @@ namespace Lumper.UI.Updater
             public int Patch { get; } = patch;
             public override string ToString() => $"{major}.{minor}.{patch}";
         }
-
-        private static Version? GetVersionVersion(string s)
+        /// <summary>
+        /// Parses a string to find the major/minor/patch versioning
+        /// </summary>
+        /// <param name="s">String containing a version number following the format 'xx.yy.zz'</param>
+        private static Version? GetVersionFromString(string s)
         {
             //match pattern of xx.yy.zz
             Match match = VersionRegex().Match(s);
@@ -69,6 +84,10 @@ namespace Lumper.UI.Updater
             return null;
 
         }
+        /// <summary>
+        /// Runs the command line (windows) or shell (linux) and passes a command to it. 
+        /// </summary>
+        /// <param name="command"></param>
         static void ExecuteCommand(string command)
         {
             int exitCode;
@@ -88,8 +107,11 @@ namespace Lumper.UI.Updater
             }
             process = Process.Start(processInfo);
         }
-
-        //Grab the JSON from the github API and deserialize
+        /// <summary>
+        /// Grab the JSON from the Github API and deserializes it
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
         private static async Task<GHUpdate> GetGithubUpdates()
         {
             HttpClient client = new HttpClient();
@@ -110,7 +132,10 @@ namespace Lumper.UI.Updater
             else
                 throw new Exception("Could not connect - error " + response.StatusCode);
         }
-
+        /// <summary>
+        /// Checks for possible update on the Github releases page by the tag name
+        /// </summary>
+        /// <returns>The current latest version, or null if it the latest</returns>
         public static async Task<Version?> CheckForUpdate()
         {
             GHUpdate assets;
@@ -133,8 +158,8 @@ namespace Lumper.UI.Updater
             Version? latest;
             try
             {
-                current = GetVersionVersion(Assembly.GetExecutingAssembly().GetName().Version.ToString());
-                latest = GetVersionVersion(assets.TagName);
+                current = GetVersionFromString(Assembly.GetExecutingAssembly().GetName().Version.ToString());
+                latest = GetVersionFromString(assets.TagName);
             } catch (Exception ex)
             {
                 ButtonResult result = await MessageBoxManager
@@ -150,7 +175,10 @@ namespace Lumper.UI.Updater
             else
                 return null;
         }
-        //returns the URL to the download link for the OS-specific version
+        /// <summary>
+        /// Returns the URL to the download link for the OS-specific version. OS should be one of: 'linux', 'win'
+        /// </summary>
+        /// <returns></returns>
         private static string GetPath(GHUpdate assets, string OS)
         {
             for (int i = 0; i < assets.Assets.Length; i++)
@@ -163,6 +191,10 @@ namespace Lumper.UI.Updater
             }
             return null;
         }
+
+        /// <summary>
+        /// Downloads a file from the given URI and places it in fileName
+        /// </summary>
          public static async Task DownloadFile(Uri uri, HttpClient client, string fileName)
         { 
             using (var stream = await client.GetStreamAsync(uri))
@@ -175,6 +207,10 @@ namespace Lumper.UI.Updater
                 }
             }
         }
+        /// <summary>
+        /// Downloads an update for the program, applies it, and then restarts itself with the new version
+        /// </summary>
+        /// <returns></returns>
         public static async ValueTask Update()
         {
             GHUpdate assets;
@@ -196,7 +232,7 @@ namespace Lumper.UI.Updater
             Version? latest;
             try
             {
-                latest = GetVersionVersion(assets.TagName);
+                latest = GetVersionFromString(assets.TagName);
             } catch (Exception ex)
             {
                 ButtonResult result = await MessageBoxManager

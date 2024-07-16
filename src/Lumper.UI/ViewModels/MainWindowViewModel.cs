@@ -34,6 +34,9 @@ public class MainWindowViewModel : ViewModel
                 RxApp.MainThreadScheduler);
         }
     }
+    /// <summary>
+    /// Event called when 'check for updates' is pressed in the File menu that triggers checking for and installing updates
+    /// </summary>
     public async ValueTask UpdateCommand()
     {
         Lumper.UI.Updater.Updater.Version? updateAvailable = await Lumper.UI.Updater.Updater.CheckForUpdate();
