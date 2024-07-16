@@ -39,7 +39,7 @@ namespace Lumper.UI.Updater
         ///  see https://api.github.com/repos/momentum-mod/lumper/releases for the full format
         /// </summary>
 
-        private record GHUpdate
+        private record GithubUpdate
         {
             [JsonProperty("tag_name")]
             public string TagName { get; set;  }
@@ -112,7 +112,7 @@ namespace Lumper.UI.Updater
         /// </summary>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        private static async Task<GHUpdate> GetGithubUpdates()
+        private static async Task<GithubUpdate> GetGithubUpdates()
         {
             HttpClient client = new HttpClient();
 
@@ -127,7 +127,7 @@ namespace Lumper.UI.Updater
             {
                 string jsonString = await response.Content.ReadAsStringAsync();
 
-                return JsonConvert.DeserializeObject<GHUpdate>(JsonObject.Parse(jsonString)[0].ToString());
+                return JsonConvert.DeserializeObject<GithubUpdate>(JsonObject.Parse(jsonString)[0].ToString());
             }
             else
                 throw new Exception("Could not connect - error " + response.StatusCode);
@@ -138,7 +138,7 @@ namespace Lumper.UI.Updater
         /// <returns>The current latest version, or null if it the latest</returns>
         public static async Task<Version?> CheckForUpdate()
         {
-            GHUpdate assets;
+            GithubUpdate assets;
             try
             {
                 assets = await GetGithubUpdates();
@@ -179,7 +179,7 @@ namespace Lumper.UI.Updater
         /// Returns the URL to the download link for the OS-specific version. OS should be one of: 'linux', 'win'
         /// </summary>
         /// <returns></returns>
-        private static string GetPath(GHUpdate assets, string OS)
+        private static string GetPath(GithubUpdate assets, string OS)
         {
             for (int i = 0; i < assets.Assets.Length; i++)
             {
@@ -213,7 +213,7 @@ namespace Lumper.UI.Updater
         /// <returns></returns>
         public static async ValueTask Update()
         {
-            GHUpdate assets;
+            GithubUpdate assets;
             try
             {
                 assets = await GetGithubUpdates();
