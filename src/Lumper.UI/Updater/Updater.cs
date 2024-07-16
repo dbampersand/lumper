@@ -43,7 +43,7 @@ namespace Lumper.UI.Updater
         //Major/Minor/Patch format
         public sealed record MMP(int major, int minor, int patch)
         {
-            public int Major { get;  } = major;
+            public int Major { get; } = major;
             public int Minor { get; } = minor;
             public int Patch { get; } = patch;
             public override string ToString() => $"{major}.{minor}.{patch}";
@@ -53,23 +53,17 @@ namespace Lumper.UI.Updater
         {
             //match pattern of xx.yy.zz
             Match match = MMPRegex().Match(s);
-            MMP version = new MMP(0, 0, 0);
             if (match.Success)
             {
                 GroupCollection currentVersion = match.Groups;
+
                 int major, minor, patch;
 
-                if (int.TryParse(currentVersion[1].ToString(), out major)
-                    && int.TryParse(currentVersion[2].ToString(), out minor)
-                    && int.TryParse(currentVersion[3].ToString(), out patch))
-                {
-                    return new MMP(major, minor, patch);
-                }
-                else
-                {
-                    throw new Exception("Could not parse Major/Minor/Patch version.");
-                }
+                int.TryParse(currentVersion[1].ToString(), out major);
+                int.TryParse(currentVersion[2].ToString(), out minor);
+                int.TryParse(currentVersion[3].ToString(), out patch);
 
+                return new MMP(major, minor, patch);
             }
             throw new Exception("Could not parse Major/Minor/Patch version.");
             return null;
@@ -83,19 +77,15 @@ namespace Lumper.UI.Updater
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                processInfo = new ProcessStartInfo("cmd.exe", "/c " + command);
-                processInfo.CreateNoWindow = true;
-                processInfo.UseShellExecute = false;
+                processInfo = new ProcessStartInfo("cmd.exe", "/c " + command)
+                    { CreateNoWindow = true, UseShellExecute = false, RedirectStandardError = true, RedirectStandardOutput = true, WorkingDirectory = System.IO.Directory.GetCurrentDirectory(); };
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                processInfo = new ProcessStartInfo(command);
-                processInfo.CreateNoWindow = true;
-                processInfo.UseShellExecute = true;
+                processInfo = new ProcessStartInfo("cmd.exe", "/c " + command)
+                    { CreateNoWindow = true, UseShellExecute = true, RedirectStandardError = true, RedirectStandardOutput = true, WorkingDirectory = System.IO.Directory.GetCurrentDirectory(); };
+
             }
-            processInfo.RedirectStandardError = true;
-            processInfo.RedirectStandardOutput = true;
-            processInfo.WorkingDirectory = System.IO.Directory.GetCurrentDirectory();
             process = Process.Start(processInfo);
         }
 
