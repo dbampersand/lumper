@@ -78,12 +78,12 @@ namespace Lumper.UI.Updater
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 processInfo = new ProcessStartInfo("cmd.exe", "/c " + command)
-                    { CreateNoWindow = true, UseShellExecute = false, RedirectStandardError = true, RedirectStandardOutput = true, WorkingDirectory = System.IO.Directory.GetCurrentDirectory(); };
+                    { CreateNoWindow = true, UseShellExecute = false, RedirectStandardError = true, RedirectStandardOutput = true, WorkingDirectory = System.IO.Directory.GetCurrentDirectory() };
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
                 processInfo = new ProcessStartInfo("cmd.exe", "/c " + command)
-                    { CreateNoWindow = true, UseShellExecute = true, RedirectStandardError = true, RedirectStandardOutput = true, WorkingDirectory = System.IO.Directory.GetCurrentDirectory(); };
+                    { CreateNoWindow = true, UseShellExecute = true, RedirectStandardError = true, RedirectStandardOutput = true, WorkingDirectory = System.IO.Directory.GetCurrentDirectory() };
 
             }
             process = Process.Start(processInfo);
