@@ -94,25 +94,23 @@ namespace Lumper.UI.Updater
         {
             HttpClient client = new HttpClient();
 
-            var request = new HttpRequestMessage()
-            {
+            var request = new HttpRequestMessage() {
                 RequestUri = new Uri("https://api.github.com/repos/momentum-mod/lumper/releases"),
                 Method = HttpMethod.Get
             };
             client.DefaultRequestHeaders.Add("User-Agent", "Other");
-            HttpResponseMessage m = client.Send(request);
+            HttpResponseMessage response = await client.SendAsync(request);
 
-            if (m.IsSuccessStatusCode)
+            if (response.IsSuccessStatusCode)
             {
-                string response = await m.Content.ReadAsStringAsync();
+                string jsonString = await response.Content.ReadAsStringAsync();
 
-                var assets = JsonConvert.DeserializeObject<GHUpdate>(JsonObject.Parse(response)[0].ToString());
-                return assets;
+                return JsonConvert.DeserializeObject<GHUpdate>(JsonObject.Parse(jsonString)[0].ToString());
             }
             else
-                throw new Exception("Could not connect - error " + m.StatusCode);
+                throw new Exception("Could not connect - error " + response.StatusCode);
         }
-        
+
         public static async Task<MMP?> CheckForUpdate()
         {
             GHUpdate assets;
