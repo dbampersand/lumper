@@ -17,8 +17,10 @@ using System.IO;
 
 namespace Lumper.UI.Updater
 {
-    internal sealed class Updater
+    internal sealed partial class Updater
     {
+        [GeneratedRegex("[0-9]+\\.[0-9]+\\.[0-9]+", RegexOptions.IgnoreCase, "en-US")]
+        private static partial Regex MMPRegex();
         //struct for deserializing JSON objects
         private record Asset
         {
@@ -48,7 +50,7 @@ namespace Lumper.UI.Updater
         private static MMP GetMMPVersion(string s)
         {
             //match pattern of xx.yy.zz
-            Match match = Regex.Match(s, "[0-9]+\\.[0-9]+\\.[0-9]+");
+            Match match = MMPRegex().Match(s);
             MMP version = new MMP(0, 0, 0);
             if (match.Success)
             {
@@ -124,9 +126,8 @@ namespace Lumper.UI.Updater
 
             //parse tag name to find the current and latest version
             //finding the format of xx.yy.zz
-            string newestVersionSplit = Regex.Match(assets.TagName, "[0-9]+\\.[0-9]+\\.[0-9]+").ToString();
             MMP current = GetMMPVersion(Assembly.GetExecutingAssembly().GetName().Version.ToString());
-            MMP latest = GetMMPVersion(newestVersionSplit);
+            MMP latest = GetMMPVersion(assets.TagName);
 
             if (current != latest)
                 return latest;
@@ -163,8 +164,7 @@ namespace Lumper.UI.Updater
 
             GHUpdate assets = await GetGithubUpdates();
 
-            string newestVersionSplit = Regex.Match(assets.TagName, "[0-9]+\\.[0-9]+\\.[0-9]+").ToString();
-            MMP latest = GetMMPVersion(newestVersionSplit);
+            MMP latest = GetMMPVersion(assets.TagName);
 
             HttpClient client = new HttpClient();
             //NOTE: linux is untested
