@@ -142,7 +142,18 @@ namespace Lumper.UI.Updater
             }
             return null;
         }
-
+         public static async Task DownloadFile(Uri uri, HttpClient client, string fileName)
+        { 
+            using (var stream = await client.GetStreamAsync(uri))
+            {
+                if (File.Exists(fileName))
+                    File.Delete(fileName);
+                using (var fileStream = new FileStream(fileName, FileMode.CreateNew))
+                {
+                    await stream.CopyToAsync(fileStream);
+                }
+            }
+        }
         public static async ValueTask Update()
         {
 
@@ -151,7 +162,7 @@ namespace Lumper.UI.Updater
             string newestVersionSplit = Regex.Match(assets.TagName, "[0-9]+\\.[0-9]+\\.[0-9]+").ToString();
             MMP latest = GetMMPVersion(newestVersionSplit);
 
-
+            HttpClient client = new HttpClient();
             //NOTE: linux is untested
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
@@ -160,8 +171,7 @@ namespace Lumper.UI.Updater
                 string directoryName = fileName + "temp";
 
                 //download and unzip to a temp directory
-                WebClient webClient = new WebClient();
-                webClient.DownloadFile(new Uri(fileURL), fileName);
+                await DownloadFile(new Uri(fileURL), client, fileName);
 
                 if (Directory.Exists(directoryName))
                 {
@@ -184,8 +194,7 @@ namespace Lumper.UI.Updater
                 string fileName = "windows_" + latest.major + "." + latest.minor + "." + latest.patch + ".zip";
                 string directoryName = fileName + "temp";
                 //download and unzip to a temp directory
-                WebClient webClient = new WebClient();
-                webClient.DownloadFile(new Uri(fileURL), fileName);
+                await DownloadFile(new Uri(fileURL), client, fileName);
 
                 if (Directory.Exists(directoryName))
                 {
