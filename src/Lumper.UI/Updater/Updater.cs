@@ -42,6 +42,7 @@ namespace Lumper.UI.Updater
             public int Major { get;  } = major;
             public int Minor { get; } = minor;
             public int Patch { get; } = patch;
+            public override string ToString() => $"{major}.{minor}.{patch}";
         }
 
         private static MMP GetMMPVersion(string s)
@@ -117,7 +118,7 @@ namespace Lumper.UI.Updater
                 throw new Exception("Could not connect - error " + m.StatusCode);
         }
         
-        public static async Task<bool> CheckForUpdate()
+        public static async Task<MMP?> CheckForUpdate()
         {
             GHUpdate assets = await GetGithubUpdates();
 
@@ -127,7 +128,10 @@ namespace Lumper.UI.Updater
             MMP current = GetMMPVersion(Assembly.GetExecutingAssembly().GetName().Version.ToString());
             MMP latest = GetMMPVersion(newestVersionSplit);
 
-            return current != latest;
+            if (current != latest)
+                return latest;
+            else
+                return null;
         }
         //returns the URL to the download link for the OS-specific version
         private static string GetPath(GHUpdate assets, string OS)

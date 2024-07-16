@@ -36,13 +36,14 @@ public class MainWindowViewModel : ViewModel
     }
     public async ValueTask UpdateCommand()
     {
-        bool updateAvailable = await Lumper.UI.Updater.Updater.CheckForUpdate();
-        if (updateAvailable)
+        Lumper.UI.Updater.Updater.MMP? updateAvailable = await Lumper.UI.Updater.Updater.CheckForUpdate();
+        if (updateAvailable != null)
         {
+            string updateNumber = updateAvailable.ToString();
             ButtonResult result = await MessageBoxManager
                 .GetMessageBoxStandard(
                     "Update Available",
-                    "Update available. Download now?", ButtonEnum.OkCancel)
+                    $"An update is available ({updateNumber}), do you want to download and restart?", ButtonEnum.OkCancel)
                 .ShowWindowDialogAsync(Program.Desktop.MainWindow);
 
             if (result != ButtonResult.Ok)
