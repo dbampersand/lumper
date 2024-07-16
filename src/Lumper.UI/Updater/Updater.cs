@@ -125,7 +125,7 @@ internal sealed partial class Updater
         }
         else
         {
-            throw new HttpRequestException("Could not connect to Github.",null,response.StatusCode);
+            throw new HttpRequestException("Could not connect to Github API.",null,response.StatusCode);
         }
     }
     /// <summary>
@@ -135,39 +135,15 @@ internal sealed partial class Updater
     public static async Task<Version?> CheckForUpdate()
     {
         GithubUpdate assets;
-        try
-        {
-            assets = await GetGithubUpdates();
-        }
-        catch (Exception ex)
-        {
-            ButtonResult result = await MessageBoxManager
-            .GetMessageBoxStandard(
-                "Error",
-                ex.Message, ButtonEnum.Ok)
-            .ShowWindowDialogAsync(Program.Desktop.MainWindow);
-            return null;
-        }
+        assets = await GetGithubUpdates();
 
         //parse tag name to find the current and latest version
         //finding the format of xx.yy.zz
-        Version? current;
-        Version? latest;
-        try
-        {
-            current = GetVersionFromString(Assembly.GetExecutingAssembly().GetName().Version.ToString());
-            latest = GetVersionFromString(assets.TagName);
-        }
-        catch (Exception ex)
-        {
-            ButtonResult result = await MessageBoxManager
-            .GetMessageBoxStandard(
-                "Error",
-                "Could not parse version number.", ButtonEnum.Ok)
-            .ShowWindowDialogAsync(Program.Desktop.MainWindow);
-            return null;
+        Version current;
+        Version latest;
+         current = GetVersionFromString(Assembly.GetExecutingAssembly().GetName().Version.ToString());
+         latest = GetVersionFromString(assets.TagName);
 
-        }
         if (current != latest)
             return latest;
         else
@@ -285,8 +261,6 @@ internal sealed partial class Updater
         try
         {
             assets = await GetGithubUpdates();
-
-
         }
         catch (Exception ex)
         {
