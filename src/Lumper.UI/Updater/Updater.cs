@@ -202,8 +202,17 @@ namespace Lumper.UI.Updater
                 }
                 System.IO.Compression.ZipFile.ExtractToDirectory(fileName, directoryName);
 
-                //copy files from the temp directory to the root directory, then delete the temp directory and run the program again
-                ExecuteCommand("xcopy /s /Y \"" + System.IO.Directory.GetCurrentDirectory() + "\\" + fileName + "temp\"" + "&& rm \""+fileName+"\" && rmdir /s /q \"" + System.IO.Directory.GetCurrentDirectory() + "\\" + directoryName + "\"" + " && Lumper.UI.exe");
+                string currentDirectory = System.IO.Directory.GetCurrentDirectory();
+        
+                string command =
+                    $@"
+                    xcopy /s /Y ""{currentDirectory}\{directoryName}"" 
+                    && rm ""{currentDirectory}\{fileName}""  
+                    && rmdir /s /q ""{currentDirectory}\{directoryName}"" 
+                    && Lumper.UI.exe
+                    ".Replace(Environment.NewLine, " ").Replace("\n", "");
+
+                ExecuteCommand(command);
 
                 //exit so we can overwrite the executable
                 System.Environment.Exit(0);
