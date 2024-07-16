@@ -20,7 +20,7 @@ namespace Lumper.UI.Updater
     internal sealed class Updater
     {
         //struct for deserializing JSON objects
-        private struct Asset
+        private record Asset
         {
             [JsonProperty("browser_download_url")]
             public string BrowserDownloadUrl { get; set;  }
@@ -28,7 +28,7 @@ namespace Lumper.UI.Updater
             public string Name { get; set;  }
         }
         //struct for deserializing JSON objects
-        private struct GHUpdate
+        private record GHUpdate
         {
             [JsonProperty("tag_name")]
             public string TagName { get; set;  }
