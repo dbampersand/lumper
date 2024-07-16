@@ -52,8 +52,8 @@ public class MainWindowViewModel : ViewModel
         {
             ButtonResult result = await MessageBoxManager
                 .GetMessageBoxStandard(
-                    "No updates available.",
-                    "No updates available.", ButtonEnum.Ok)
+                    "No updates available",
+                    "No updates available", ButtonEnum.Ok)
                 .ShowWindowDialogAsync(Program.Desktop.MainWindow);
 
             return;
