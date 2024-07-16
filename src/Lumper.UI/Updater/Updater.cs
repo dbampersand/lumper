@@ -21,7 +21,7 @@ namespace Lumper.UI.Updater
 {
     internal sealed partial class Updater
     {
-        [GeneratedRegex("[0-9]+\\.[0-9]+\\.[0-9]+", RegexOptions.IgnoreCase, "en-US")]
+        [GeneratedRegex(@"^(\d+)\.(\d+)\.(\d+)")]
         private static partial Regex MMPRegex();
         //struct for deserializing JSON objects
         private record Asset
@@ -56,12 +56,12 @@ namespace Lumper.UI.Updater
             MMP version = new MMP(0, 0, 0);
             if (match.Success)
             {
-                MatchCollection currentVersion = Regex.Matches(match.ToString(), "[0-9]+");
+                GroupCollection currentVersion = match.Groups;
                 int major, minor, patch;
 
-                if (int.TryParse(currentVersion[0].ToString(), out major)
-                    && int.TryParse(currentVersion[1].ToString(), out minor)
-                    && int.TryParse(currentVersion[2].ToString(), out patch))
+                if (int.TryParse(currentVersion[1].ToString(), out major)
+                    && int.TryParse(currentVersion[2].ToString(), out minor)
+                    && int.TryParse(currentVersion[3].ToString(), out patch))
                 {
                     return new MMP(major, minor, patch);
                 }
