@@ -77,7 +77,6 @@ internal sealed partial class Updater
             return new Version(major, minor, patch);
         }
         throw new Exception("Could not parse Major/Minor/Patch version.");
-        return null;
 
     }
 
@@ -97,7 +96,7 @@ internal sealed partial class Updater
         }
         else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
         {
-            processInfo = new ProcessStartInfo("cmd.exe", "/c " + command) { CreateNoWindow = true, UseShellExecute = true, RedirectStandardError = true, RedirectStandardOutput = true, WorkingDirectory = Directory.GetCurrentDirectory() };
+            processInfo = new ProcessStartInfo(command) { CreateNoWindow = true, UseShellExecute = true, RedirectStandardError = true, RedirectStandardOutput = true, WorkingDirectory = Directory.GetCurrentDirectory() };
 
         }
         process = Process.Start(processInfo);
