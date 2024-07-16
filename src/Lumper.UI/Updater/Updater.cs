@@ -16,6 +16,11 @@ using Avalonia.Controls;
 using System.IO;
 using MsBox.Avalonia.Enums;
 using MsBox.Avalonia;
+using Lumper.UI.Views;
+using Lumper.Lib.BSP.IO;
+using System.Threading;
+using NLog;
+
 
 namespace Lumper.UI.Updater
 {
@@ -175,6 +180,78 @@ namespace Lumper.UI.Updater
             else
                 return null;
         }
+        public static async Task<Stream?> HttpDownload(string url, string fileName)
+        {
+            IoProgressWindow? progressWindow = null;
+            var buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(80 * 1024);
+            var cts = new CancellationTokenSource();
+            var handler = new IoHandler(cts);
+
+            if (File.Exists(fileName))
+                File.Delete(fileName);
+
+            var stream = new FileStream(fileName, FileMode.CreateNew);
+            try
+            {
+                if (Program.Desktop.MainWindow is not null)
+                {
+                    progressWindow = new IoProgressWindow {
+                        Title = $"Downloading {url}",
+                        Handler = handler
+                    };
+                    _ = progressWindow.ShowDialog(Program.Desktop.MainWindow);
+                }
+
+                using var httpClient = new HttpClient();
+                using HttpResponseMessage response =
+                    await httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cts.Token);
+
+                await using Stream downloadStream = await response.Content.ReadAsStreamAsync(cts.Token);
+
+                if (response.Content.Headers.ContentLength is null)
+                {
+                    handler.UpdateProgress(0, "Downloading (unknown length)");
+                    await downloadStream.CopyToAsync(stream, cts.Token);
+                }
+                else
+                {
+                    int read;
+                    var length = (int)response.Content.Headers.ContentLength.Value;
+                    var remaining = length;
+                    while (!handler.Cancelled &&
+                           (read = await downloadStream.ReadAsync(
+                               buffer.AsMemory(0, int.Min(buffer.Length, remaining)),
+                               cts.Token)) >
+                           0)
+                    {
+                        var prog = (float)read / length * 100;
+                        handler.UpdateProgress(prog, $"{float.Floor((1 - ((float)remaining / length)) * 100)}%");
+                        await stream.WriteAsync(buffer.AsMemory(0, read), cts.Token);
+                        remaining -= read;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                if (ex is TaskCanceledException)
+                    LogManager.GetCurrentClassLogger().Info("Download cancelled by user");
+                else
+                    LogManager.GetCurrentClassLogger().Error(ex, "Failed to download!");
+
+                await stream.DisposeAsync();
+                return null;
+            }
+            finally
+            {
+                progressWindow?.Close();
+                stream.Close();
+            }
+
+            if (handler.Cancelled)
+                return null;
+
+            return stream;
+        }
         /// <summary>
         /// Returns the URL to the download link for the OS-specific version.
         /// </summary>
@@ -204,17 +281,9 @@ namespace Lumper.UI.Updater
         /// <summary>
         /// Downloads a file from the given URI and places it in fileName
         /// </summary>
-         public static async Task DownloadFile(Uri uri, HttpClient client, string fileName)
-        { 
-            using (var stream = await client.GetStreamAsync(uri))
-            {
-                if (File.Exists(fileName))
-                    File.Delete(fileName);
-                using (var fileStream = new FileStream(fileName, FileMode.CreateNew))
-                {
-                    await stream.CopyToAsync(fileStream);
-                }
-            }
+         public static async Task DownloadFile(Uri uri,  string fileName)
+        {
+            await HttpDownload(uri.AbsoluteUri, fileName);
         }
         /// <summary>
         /// Downloads an update for the program, applies it, and then restarts itself with the new version
@@ -252,7 +321,7 @@ namespace Lumper.UI.Updater
                 return;
             }
 
-            HttpClient client = new HttpClient();
+
             //NOTE: linux is untested
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
@@ -263,8 +332,7 @@ namespace Lumper.UI.Updater
                     string directoryName = fileName + "temp";
 
                     //download and unzip to a temp directory
-                    await DownloadFile(new Uri(fileURL), client, fileName);
-
+                    await DownloadFile(new Uri(fileURL), fileName);
                     if (Directory.Exists(directoryName))
                     {
                         Directory.Delete(directoryName, true);
@@ -305,12 +373,15 @@ namespace Lumper.UI.Updater
             {
                 try
                 {
+
                     string fileURL = GetPath(assets, OSPlatform.Windows);
 
                     string fileName = "windows_" + latest.ToString() + ".zip";
                     string directoryName = fileName + "temp";
+
+                    //await ShowProgressWindow(fileURL, handler);
                     //download and unzip to a temp directory
-                    await DownloadFile(new Uri(fileURL), client, fileName);
+                    await DownloadFile(new Uri(fileURL), fileName);
 
                     if (Directory.Exists(directoryName))
                     {
