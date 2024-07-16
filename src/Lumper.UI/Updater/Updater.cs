@@ -189,8 +189,21 @@ namespace Lumper.UI.Updater
         }
         public static async ValueTask Update()
         {
+            GHUpdate assets;
+            try
+            {
+                assets = await GetGithubUpdates();
 
-            GHUpdate assets = await GetGithubUpdates();
+                
+            } catch (Exception ex)
+            {
+                ButtonResult result = await MessageBoxManager
+                .GetMessageBoxStandard(
+                    "Error",
+                    ex.Message, ButtonEnum.Ok)
+                .ShowWindowDialogAsync(Program.Desktop.MainWindow);
+                return;
+            }
 
             MMP? latest;
             try
