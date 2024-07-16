@@ -259,7 +259,7 @@ namespace Lumper.UI.Updater
                 try
                 { 
                     string fileURL = GetPath(assets, OSPlatform.Linux);
-                    string fileName = "linux_" + latest.major + "." + latest.minor + "." + latest.patch + ".zip";
+                    string fileName = "linux_" + latest.ToString() + ".zip";
                     string directoryName = fileName + "temp";
 
                     //download and unzip to a temp directory
@@ -307,7 +307,7 @@ namespace Lumper.UI.Updater
                 {
                     string fileURL = GetPath(assets, OSPlatform.Windows);
 
-                    string fileName = "windows_" + latest.major + "." + latest.minor + "." + latest.patch + ".zip";
+                    string fileName = "windows_" + latest.ToString() + ".zip";
                     string directoryName = fileName + "temp";
                     //download and unzip to a temp directory
                     await DownloadFile(new Uri(fileURL), client, fileName);
