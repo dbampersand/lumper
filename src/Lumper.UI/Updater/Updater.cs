@@ -23,18 +23,17 @@ namespace Lumper.UI.Updater
         private struct Asset
         {
             [JsonProperty("browser_download_url")]
-            public string browser_download_url;
+            public string BrowserDownloadUrl { get; set;  }
             [JsonProperty("name")]
-            public string name;
+            public string Name { get; set;  }
         }
         //struct for deserializing JSON objects
         private struct GHUpdate
         {
             [JsonProperty("tag_name")]
-            public string tag_name;
+            public string TagName { get; set;  }
             [JsonProperty("assets")]
-            public Asset[] assets;
-
+            public Asset[] Assets { get; set; }
 
         }
         //Major/Minor/Patch format
@@ -129,7 +128,7 @@ namespace Lumper.UI.Updater
 
             //parse tag name to find the current and latest version
             //finding the format of xx.yy.zz
-            string newestVersionSplit = Regex.Match(assets.tag_name, "[0-9]+\\.[0-9]+\\.[0-9]+").ToString();
+            string newestVersionSplit = Regex.Match(assets.TagName, "[0-9]+\\.[0-9]+\\.[0-9]+").ToString();
             MMP current = GetMMPVersion(Assembly.GetExecutingAssembly().GetName().Version.ToString());
             MMP latest = GetMMPVersion(newestVersionSplit);
 
@@ -138,11 +137,11 @@ namespace Lumper.UI.Updater
         //returns the URL to the download link for the OS-specific version
         private static string GetPath(GHUpdate assets, string OS)
         {
-            for (int i = 0; i < assets.assets.Length; i++)
+            for (int i = 0; i < assets.Assets.Length; i++)
             {
-                if (assets.assets[i].name.Contains(OS, StringComparison.CurrentCultureIgnoreCase))
+                if (assets.Assets[i].Name.Contains(OS, StringComparison.CurrentCultureIgnoreCase))
                 {
-                    return assets.assets[i].browser_download_url;
+                    return assets.Assets[i].BrowserDownloadUrl;
                 }
 
             }
@@ -154,7 +153,7 @@ namespace Lumper.UI.Updater
 
             GHUpdate assets = await GetGithubUpdates();
 
-            string newestVersionSplit = Regex.Match(assets.tag_name, "[0-9]+\\.[0-9]+\\.[0-9]+").ToString();
+            string newestVersionSplit = Regex.Match(assets.TagName, "[0-9]+\\.[0-9]+\\.[0-9]+").ToString();
             MMP latest = GetMMPVersion(newestVersionSplit);
 
 
