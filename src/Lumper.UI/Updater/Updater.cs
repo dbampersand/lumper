@@ -2,7 +2,9 @@ namespace Lumper.UI.Updater;
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Net;
 using System.Net.Http;
+using System.Net.Mail;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text.Json.Nodes;
@@ -104,8 +106,6 @@ internal sealed partial class Updater
     /// <summary>
     /// Grab the JSON from the Github API and deserializes it
     /// </summary>
-    /// <returns></returns>
-    /// <exception cref="Exception"></exception>
     private static async Task<GithubUpdate> GetGithubUpdates()
     {
         var client = new HttpClient();
@@ -125,7 +125,7 @@ internal sealed partial class Updater
         }
         else
         {
-            throw new Exception("Could not connect - error " + response.StatusCode);
+            throw new HttpRequestException("Could not connect to Github.",null,response.StatusCode);
         }
     }
     /// <summary>
