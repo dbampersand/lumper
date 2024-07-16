@@ -72,6 +72,8 @@
               <Separator />
               <MenuItem Header="_Export JSON data" Command="{Binding BspService.JsonDump}" />
               <Separator />
+              <MenuItem Header="Check for updates" Command="{Binding UpdateCommand}" />
+              <Separator />
               <MenuItem Header="_Close" Command="{Binding CloseCommand}" />
               <MenuItem Header="_Exit" Command="{Binding ExitCommand}" />
             </MenuItem>

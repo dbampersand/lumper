@@ -34,7 +34,32 @@ public class MainWindowViewModel : ViewModel
                 RxApp.MainThreadScheduler);
         }
     }
+    public async ValueTask UpdateCommand()
+    {
+        bool updateAvailable = await Lumper.UI.Updater.Updater.CheckForUpdate();
+        if (updateAvailable)
+        {
+            ButtonResult result = await MessageBoxManager
+                .GetMessageBoxStandard(
+                    "Update Available",
+                    "Update available. Download now?", ButtonEnum.OkCancel)
+                .ShowWindowDialogAsync(Program.Desktop.MainWindow);
 
+            if (result != ButtonResult.Ok)
+                return;
+        }
+        else
+        {
+            ButtonResult result = await MessageBoxManager
+                .GetMessageBoxStandard(
+                    "No updates available.",
+                    "No updates available.", ButtonEnum.Ok)
+                .ShowWindowDialogAsync(Program.Desktop.MainWindow);
+
+            return;
+        }
+        await Lumper.UI.Updater.Updater.Update();
+    }
     public async Task OpenCommand()
     {
         if (Program.Desktop.MainWindow is null)
