@@ -36,7 +36,7 @@ public class MainWindowViewModel : ViewModel
     }
     public async ValueTask UpdateCommand()
     {
-        Lumper.UI.Updater.Updater.MMP? updateAvailable = await Lumper.UI.Updater.Updater.CheckForUpdate();
+        Lumper.UI.Updater.Updater.Version? updateAvailable = await Lumper.UI.Updater.Updater.CheckForUpdate();
         if (updateAvailable != null)
         {
             string updateNumber = updateAvailable.ToString();

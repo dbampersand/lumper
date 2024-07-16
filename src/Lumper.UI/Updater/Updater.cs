@@ -22,7 +22,7 @@ namespace Lumper.UI.Updater
     internal sealed partial class Updater
     {
         [GeneratedRegex(@"^(\d+)\.(\d+)\.(\d+)")]
-        private static partial Regex MMPRegex();
+        private static partial Regex VersionRegex();
         //struct for deserializing JSON objects
         private record Asset
         {
@@ -41,7 +41,7 @@ namespace Lumper.UI.Updater
 
         }
         //Major/Minor/Patch format
-        public sealed record MMP(int major, int minor, int patch)
+        public sealed record Version(int major, int minor, int patch)
         {
             public int Major { get; } = major;
             public int Minor { get; } = minor;
@@ -49,10 +49,10 @@ namespace Lumper.UI.Updater
             public override string ToString() => $"{major}.{minor}.{patch}";
         }
 
-        private static MMP? GetMMPVersion(string s)
+        private static Version? GetVersionVersion(string s)
         {
             //match pattern of xx.yy.zz
-            Match match = MMPRegex().Match(s);
+            Match match = VersionRegex().Match(s);
             if (match.Success)
             {
                 GroupCollection currentVersion = match.Groups;
@@ -63,7 +63,7 @@ namespace Lumper.UI.Updater
                 int.TryParse(currentVersion[2].ToString(), out minor);
                 int.TryParse(currentVersion[3].ToString(), out patch);
 
-                return new MMP(major, minor, patch);
+                return new Version(major, minor, patch);
             }
             throw new Exception("Could not parse Major/Minor/Patch version.");
             return null;
@@ -111,7 +111,7 @@ namespace Lumper.UI.Updater
                 throw new Exception("Could not connect - error " + response.StatusCode);
         }
 
-        public static async Task<MMP?> CheckForUpdate()
+        public static async Task<Version?> CheckForUpdate()
         {
             GHUpdate assets;
             try
@@ -129,12 +129,12 @@ namespace Lumper.UI.Updater
 
             //parse tag name to find the current and latest version
             //finding the format of xx.yy.zz
-            MMP? current;
-            MMP? latest;
+            Version? current;
+            Version? latest;
             try
             {
-                current = GetMMPVersion(Assembly.GetExecutingAssembly().GetName().Version.ToString());
-                latest = GetMMPVersion(assets.TagName);
+                current = GetVersionVersion(Assembly.GetExecutingAssembly().GetName().Version.ToString());
+                latest = GetVersionVersion(assets.TagName);
             } catch (Exception ex)
             {
                 ButtonResult result = await MessageBoxManager
@@ -193,10 +193,10 @@ namespace Lumper.UI.Updater
                 return;
             }
 
-            MMP? latest;
+            Version? latest;
             try
             {
-                latest = GetMMPVersion(assets.TagName);
+                latest = GetVersionVersion(assets.TagName);
             } catch (Exception ex)
             {
                 ButtonResult result = await MessageBoxManager
