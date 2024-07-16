@@ -17,7 +17,7 @@ using System.IO;
 
 namespace Lumper.UI.Updater
 {
-    internal class Updater
+    internal sealed class Updater
     {
         //struct for deserializing JSON objects
         private struct Asset
@@ -38,7 +38,7 @@ namespace Lumper.UI.Updater
 
         }
         //Major/Minor/Patch format
-        public class MMP
+        public sealed class MMP
         {
             public int major;
             public int minor;
@@ -140,7 +140,7 @@ namespace Lumper.UI.Updater
         {
             for (int i = 0; i < assets.assets.Length; i++)
             {
-                if (assets.assets[i].name.ToLower().Contains(OS.ToLower()))
+                if (assets.assets[i].name.Contains(OS, StringComparison.CurrentCultureIgnoreCase))
                 {
                     return assets.assets[i].browser_download_url;
                 }
