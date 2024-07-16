@@ -182,14 +182,17 @@ namespace Lumper.UI.Updater
 
                 string currentDirectory = System.IO.Directory.GetCurrentDirectory();
 
-                //copy files from the temp directory to the root directory, then delete the temp directory and run the program again
+                //wait 2 seconds for the process to fully exit before
+                //copying files from the temp directory to the root directory,
+                //then delete the temp directory and run the program again
                 string command =
                     $@"
-                    yes | cp -rf ""{currentDirectory}\{directoryName}"" 
+                    sleep 2
+                    && yes | cp -rf ""{currentDirectory}\{directoryName}"" 
                     && rm ""{currentDirectory}\{fileName}""  
                     && rm -rf ""{currentDirectory}\{directoryName}"" 
                     && ./Lumper.UI
-                    ".Replace(Environment.NewLine, " ").Replace("\n", "");
+                    ".Replace(Environment.NewLine, " ").Replace("\n", " ");
 
                 ExecuteCommand(command);
 
@@ -213,14 +216,18 @@ namespace Lumper.UI.Updater
                 System.IO.Compression.ZipFile.ExtractToDirectory(fileName, directoryName);
 
                 string currentDirectory = System.IO.Directory.GetCurrentDirectory();
-        
+
+                //wait 2 seconds for the process to fully exit before
+                //copying files from the temp directory to the root directory,
+                //then delete the temp directory and run the program again
                 string command =
                     $@"
-                    xcopy /s /Y ""{currentDirectory}\{directoryName}"" 
+                    sleep 2
+                    && xcopy /s /Y ""{currentDirectory}\{directoryName}"" 
                     && rm ""{currentDirectory}\{fileName}""  
                     && rmdir /s /q ""{currentDirectory}\{directoryName}"" 
                     && Lumper.UI.exe
-                    ".Replace(Environment.NewLine, " ").Replace("\n", "");
+                    ".Replace(Environment.NewLine, " ").Replace("\n", " ");
 
                 ExecuteCommand(command);
 
