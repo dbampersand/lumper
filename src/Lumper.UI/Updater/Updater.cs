@@ -37,17 +37,11 @@ namespace Lumper.UI.Updater
 
         }
         //Major/Minor/Patch format
-        public sealed class MMP
+        public sealed record MMP(int major, int minor, int patch)
         {
-            public int major;
-            public int minor;
-            public int patch;
-            public MMP(int Major, int Minor, int Patch)
-            {
-                major = Major;
-                minor = Minor;
-                patch = Patch;
-            }
+            public int Major { get;  } = major;
+            public int Minor { get; } = minor;
+            public int Patch { get; } = patch;
         }
 
         private static MMP GetMMPVersion(string s)
@@ -58,12 +52,13 @@ namespace Lumper.UI.Updater
             if (match.Success)
             {
                 MatchCollection currentVersion = Regex.Matches(match.ToString(), "[0-9]+");
+                int major, minor, patch;
 
-
-                if (int.TryParse(currentVersion[0].ToString(), out version.major)
-                    && int.TryParse(currentVersion[1].ToString(), out version.minor)
-                    && int.TryParse(currentVersion[2].ToString(), out version.patch))
+                if (int.TryParse(currentVersion[0].ToString(), out major)
+                    && int.TryParse(currentVersion[1].ToString(), out minor)
+                    && int.TryParse(currentVersion[2].ToString(), out patch))
                 {
+                    return new MMP(major, minor, patch);
                 }
                 else
                 {
@@ -132,7 +127,7 @@ namespace Lumper.UI.Updater
             MMP current = GetMMPVersion(Assembly.GetExecutingAssembly().GetName().Version.ToString());
             MMP latest = GetMMPVersion(newestVersionSplit);
 
-            return (current.major != latest.major || current.minor != latest.minor || current.patch != latest.patch);
+            return current != latest;
         }
         //returns the URL to the download link for the OS-specific version
         private static string GetPath(GHUpdate assets, string OS)
