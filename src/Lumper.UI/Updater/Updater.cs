@@ -76,7 +76,7 @@ sealed partial class Updater
     /// Parses a string to find the major/minor/patch versioning
     /// </summary>
     /// <param name="s">String containing a version number following the format 'xx.yy.zz'</param>
-    private static Version? GetVersionFromString(string s)
+    private static Version GetVersionFromString(string s)
     {
         //match pattern of xx.yy.zz
         Match match = VersionRegex().Match(s);
