@@ -30,6 +30,8 @@ internal sealed partial class Updater
     [GeneratedRegex(@"^(\d+)\.(\d+)\.(\d+)")]
     private static partial Regex VersionRegex();
 
+    private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+
     private const float DownloadProgressPercentage = 80;
 
     /// <summary>
@@ -203,9 +205,9 @@ internal sealed partial class Updater
         catch (Exception ex)
         {
             if (ex is TaskCanceledException)
-                LogManager.GetCurrentClassLogger().Info("Download cancelled by user");
+                Logger.Info("Download cancelled by user");
             else
-                LogManager.GetCurrentClassLogger().Error(ex, "Failed to download!");
+                Logger.Error(ex, "Failed to download!");
 
             await stream.DisposeAsync();
             return null;
