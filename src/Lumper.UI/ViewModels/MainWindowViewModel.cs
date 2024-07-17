@@ -39,8 +39,8 @@ public class MainWindowViewModel : ViewModel
     /// </summary>
     public async ValueTask UpdateCommand()
     {
-        Lumper.UI.Updater.Updater.Version? updateAvailable = await Lumper.UI.Updater.Updater.CheckForUpdate();
-        if (updateAvailable != null)
+        Tuple<bool,Updater.Updater.Version> updateAvailable = await Updater.Updater.CheckForUpdate();
+        if (updateAvailable.Item1)
         {
             string updateNumber = updateAvailable.ToString();
             ButtonResult result = await MessageBoxManager

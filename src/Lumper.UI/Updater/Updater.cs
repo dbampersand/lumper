@@ -142,8 +142,8 @@ sealed partial class Updater
     /// <summary>
     /// Checks for possible update on the Github releases page by the tag name
     /// </summary>
-    /// <returns>The current latest version, or null if it the latest</returns>
-    public static async Task<Version?> CheckForUpdate()
+    /// <returns>A tuple where the first value defines if there is an update ready, and the second value is the latest Version</returns>
+    public static async Task<Tuple<bool, Version>> CheckForUpdate()
     {
         GithubUpdate assets;
         assets = await GetGithubUpdates();
@@ -155,10 +155,7 @@ sealed partial class Updater
         current = GetVersionFromString(Assembly.GetExecutingAssembly().GetName().Version.ToString());
         latest = GetVersionFromString(assets.TagName);
 
-        if (current != latest)
-            return latest;
-        else
-            return null;
+       return new Tuple<bool, Version>(current != latest, latest);
     }
     public static async Task<Stream?> HttpDownload(string url, string fileName, IoProgressWindow progressWindow, IoHandler handler, CancellationTokenSource cts)
     {
