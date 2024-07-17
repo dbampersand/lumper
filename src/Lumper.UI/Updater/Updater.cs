@@ -315,7 +315,28 @@ internal sealed partial class Updater
                     Directory.Delete(directoryName, true);
                 }
 
-                System.IO.Compression.ZipFile.ExtractToDirectory(fileName, directoryName);
+                float progress = DownloadProgressPercentage / 100.0f;
+
+                Directory.CreateDirectory(directoryName);
+                List<Task> tasks = new List<Task>();
+                List<FileStream> fileStreams = new List<FileStream>();
+                using (ZipArchive archive = ZipFile.OpenRead(fileName))
+                {
+                    foreach (ZipArchiveEntry entry in archive.Entries)
+                    {
+                        using (Stream zipStream = entry.Open())
+                        {
+                            float deltaProgress = 1 / (float)archive.Entries.Count * (100 - DownloadProgressPercentage);
+                            progress += deltaProgress;
+                            handler.UpdateProgress(deltaProgress, $"{float.Floor(DownloadProgressPercentage + progress)}%");
+
+                            FileStream f = new FileStream($"{directoryName}/{entry.Name}", FileMode.CreateNew);
+                            await zipStream.CopyToAsync(f);
+                            f.Close();
+                        }
+                    }
+                }
+
 
                 var currentDirectory = Directory.GetCurrentDirectory();
 
