@@ -10,6 +10,7 @@ using System.Net.Mail;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
+using System.Security;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -83,12 +84,10 @@ internal sealed partial class Updater
         {
             GroupCollection currentVersion = match.Groups;
 
-
-            int.TryParse(currentVersion[1].ToString(), out var major);
-            int.TryParse(currentVersion[2].ToString(), out var minor);
-            int.TryParse(currentVersion[3].ToString(), out var patch);
-
-            return new Version(major, minor, patch);
+            return new Version(
+            int.Parse(currentVersion[1].ToString()),
+            int.Parse(currentVersion[2].ToString()),
+            int.Parse(currentVersion[3].ToString()));
         }
         throw new Exception("Could not parse Major/Minor/Patch version.");
 
@@ -274,7 +273,7 @@ internal sealed partial class Updater
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
                 var fileURL = GetPath(assets, OSPlatform.Linux);
-                var fileName = "linux_" + latest.ToString() + ".zip";
+                var fileName = "linux_{latest}.zip";
                 var directoryName = fileName + "temp";
 
                 progressWindow = new IoProgressWindow {
@@ -338,7 +337,7 @@ internal sealed partial class Updater
             {
                 var fileURL = GetPath(assets, OSPlatform.Windows);
 
-                var fileName = "windows_" + latest.ToString() + ".zip";
+                var fileName = "windows_{latest}.zip";
                 var directoryName = fileName + "temp";
 
                 progressWindow = new IoProgressWindow {
