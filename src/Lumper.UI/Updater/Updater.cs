@@ -235,7 +235,7 @@ internal sealed partial class Updater
         else if (OS == OSPlatform.Linux)
             operatingSystem = "linux";
         else
-            throw new Exception("Unsupported OS: " + nameof(OS));
+            throw new ApplicationException("Unsupported OS: " + OS);
 
         foreach (Asset asset in assets.Assets)
         {
