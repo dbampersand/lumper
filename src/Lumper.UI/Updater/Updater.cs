@@ -262,40 +262,16 @@ internal sealed partial class Updater
         try
         {
             assets = await GetGithubUpdates();
-        }
-        catch (Exception ex)
-        {
-            ButtonResult result = await MessageBoxManager
-            .GetMessageBoxStandard(
-                "Error",
-                ex.Message, ButtonEnum.Ok)
-            .ShowWindowDialogAsync(Program.Desktop.MainWindow);
-            return;
-        }
 
-        Version? latest;
-        try
-        {
+            Version? latest;
             latest = GetVersionFromString(assets.TagName);
-        }
-        catch (Exception ex)
-        {
-            ButtonResult result = await MessageBoxManager
-            .GetMessageBoxStandard(
-                "Error",
-                "Could not parse version number.", ButtonEnum.Ok)
-            .ShowWindowDialogAsync(Program.Desktop.MainWindow);
-            return;
-        }
 
-        IoProgressWindow progressWindow;
-        var cts = new CancellationTokenSource();
-        var handler = new IoHandler(cts);
+            IoProgressWindow progressWindow;
+            var cts = new CancellationTokenSource();
+            var handler = new IoHandler(cts);
 
-        //NOTE: linux is untested
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-        {
-            try
+            //NOTE: linux is untested
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
                 var fileURL = GetPath(assets, OSPlatform.Linux);
                 var fileName = "linux_" + latest.ToString() + ".zip";
@@ -345,43 +321,30 @@ internal sealed partial class Updater
                 //then delete the temp directory and run the program again
                 var command =
                     $@"
-                        sleep 2
-                        && yes | cp -rf ""{currentDirectory}\{directoryName}"" 
-                        && rm ""{currentDirectory}\{fileName}""  
-                        && rm -rf ""{currentDirectory}\{directoryName}"" 
-                        && ./Lumper.UI
-                        ".Replace(Environment.NewLine, " ").Replace("\n", " ");
+                    sleep 2
+                    && yes | cp -rf ""{currentDirectory}\{directoryName}"" 
+                    && rm ""{currentDirectory}\{fileName}""  
+                    && rm -rf ""{currentDirectory}\{directoryName}"" 
+                    && ./Lumper.UI
+                    ".Replace(Environment.NewLine, " ").Replace("\n", " ");
 
                 ExecuteCommand(command);
 
                 //exit so we can overwrite the executable
                 Environment.Exit(0);
             }
-            catch (Exception ex)
-            {
-                ButtonResult result = await MessageBoxManager
-                .GetMessageBoxStandard(
-                    "Error",
-                    "IO error: " + ex.Message, ButtonEnum.Ok)
-                .ShowWindowDialogAsync(Program.Desktop.MainWindow);
-                return;
-            }
-        }
 
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            try
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-
                 var fileURL = GetPath(assets, OSPlatform.Windows);
 
                 var fileName = "windows_" + latest.ToString() + ".zip";
                 var directoryName = fileName + "temp";
 
-                 progressWindow = new IoProgressWindow {
-                     Title = $"Downloading {fileURL}",
-                     Handler = handler
-                 };
+                progressWindow = new IoProgressWindow {
+                    Title = $"Downloading {fileURL}",
+                    Handler = handler
+                };
                 _ = progressWindow.ShowDialog(Program.Desktop.MainWindow);
 
 
@@ -394,7 +357,7 @@ internal sealed partial class Updater
                     Directory.Delete(directoryName, true);
                 }
 
-                float progress = DownloadProgressPercentage/100.0f;
+                float progress = DownloadProgressPercentage / 100.0f;
 
                 Directory.CreateDirectory(directoryName);
                 List<Task> tasks = new List<Task>();
@@ -423,31 +386,25 @@ internal sealed partial class Updater
                 //then delete the temp directory and run the program again
                 var command =
                     $@"
-                        sleep 2
-                        && xcopy /s /Y ""{currentDirectory}\{directoryName}"" 
-                        && rm ""{currentDirectory}\{fileName}""  
-                        && rmdir /s /q ""{currentDirectory}\{directoryName}"" 
-                        && Lumper.UI.exe
-                        ".Replace(Environment.NewLine, " ").Replace("\n", " ");
+                    sleep 2
+                    && xcopy /s /Y ""{currentDirectory}\{directoryName}"" 
+                    && rm ""{currentDirectory}\{fileName}""  
+                    && rmdir /s /q ""{currentDirectory}\{directoryName}"" 
+                    && Lumper.UI.exe
+                    ".Replace(Environment.NewLine, " ").Replace("\n", " ");
 
                 ExecuteCommand(command);
 
                 //exit so we can overwrite the executable
                 Environment.Exit(0);
             }
-            catch (Exception ex)
-            {
-                ButtonResult result = await MessageBoxManager
-                .GetMessageBoxStandard(
-                    "Error",
-                    "IO error: " + ex.Message, ButtonEnum.Ok)
-                .ShowWindowDialogAsync(Program.Desktop.MainWindow);
-                return;
-            }
+
+
+
         }
-
-
-
-
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failed to download update");
+        }
     }
 }
