@@ -1,27 +1,37 @@
 namespace Lumper.UI.Updater;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Net;
 using System.Net.Http;
 using System.Net.Mail;
 using System.Reflection;
+using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using HarfBuzzSharp;
 using Lumper.Lib.BSP.IO;
 using Lumper.UI.Views;
 using MsBox.Avalonia;
 using MsBox.Avalonia.Enums;
 using Newtonsoft.Json;
 using NLog;
+using NLog.Targets;
+using SharpCompress.Archives;
+using SharpCompress.Common;
 
 internal sealed partial class Updater
 {
     [GeneratedRegex(@"^(\d+)\.(\d+)\.(\d+)")]
     private static partial Regex VersionRegex();
+
+    private const float DownloadProgressPercentage = 80;
+
     /// <summary>
     /// record for deserializing JSON objects 
     /// given in the GitHub JSON API response 
@@ -141,20 +151,18 @@ internal sealed partial class Updater
         //finding the format of xx.yy.zz
         Version current;
         Version latest;
-         current = GetVersionFromString(Assembly.GetExecutingAssembly().GetName().Version.ToString());
-         latest = GetVersionFromString(assets.TagName);
+        current = GetVersionFromString(Assembly.GetExecutingAssembly().GetName().Version.ToString());
+        latest = GetVersionFromString(assets.TagName);
 
         if (current != latest)
             return latest;
         else
             return null;
     }
-    public static async Task<Stream?> HttpDownload(string url, string fileName)
+    public static async Task<Stream?> HttpDownload(string url, string fileName, IoProgressWindow progressWindow, IoHandler handler, CancellationTokenSource cts)
     {
-        IoProgressWindow? progressWindow = null;
+        //the amount the progress bar should go up to while downloading - we still have to unzip for the other percentage
         var buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(80 * 1024);
-        var cts = new CancellationTokenSource();
-        var handler = new IoHandler(cts);
 
         if (File.Exists(fileName))
             File.Delete(fileName);
@@ -162,14 +170,6 @@ internal sealed partial class Updater
         var stream = new FileStream(fileName, FileMode.CreateNew);
         try
         {
-            if (Program.Desktop.MainWindow is not null)
-            {
-                progressWindow = new IoProgressWindow {
-                    Title = $"Downloading {url}",
-                    Handler = handler
-                };
-                _ = progressWindow.ShowDialog(Program.Desktop.MainWindow);
-            }
 
             using var httpClient = new HttpClient();
             using HttpResponseMessage response =
@@ -193,8 +193,8 @@ internal sealed partial class Updater
                            cts.Token)) >
                        0)
                 {
-                    var prog = (float)read / length * 100;
-                    handler.UpdateProgress(prog, $"{float.Floor((1 - ((float)remaining / length)) * 100)}%");
+                    var prog = (float)read / length * DownloadProgressPercentage;
+                    handler.UpdateProgress(prog, $"{float.Floor((1 - ((float)remaining / length)) * DownloadProgressPercentage)}%");
                     await stream.WriteAsync(buffer.AsMemory(0, read), cts.Token);
                     remaining -= read;
                 }
@@ -212,7 +212,6 @@ internal sealed partial class Updater
         }
         finally
         {
-            progressWindow?.Close();
             stream.Close();
         }
 
@@ -250,7 +249,7 @@ internal sealed partial class Updater
     /// <summary>
     /// Downloads a file from the given URI and places it in fileName
     /// </summary>
-    public static async Task DownloadFile(Uri uri, string fileName) => await HttpDownload(uri.AbsoluteUri, fileName);
+    public static async Task DownloadFile(Uri uri, string fileName, IoProgressWindow progressWindow, IoHandler handler, CancellationTokenSource cts) => await HttpDownload(uri.AbsoluteUri, fileName, progressWindow,  handler, cts);
     /// <summary>
     /// Downloads an update for the program, applies it, and then restarts itself with the new version
     /// </summary>
@@ -287,6 +286,9 @@ internal sealed partial class Updater
             return;
         }
 
+        IoProgressWindow progressWindow;
+        var cts = new CancellationTokenSource();
+        var handler = new IoHandler(cts);
 
         //NOTE: linux is untested
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
@@ -297,8 +299,15 @@ internal sealed partial class Updater
                 var fileName = "linux_" + latest.ToString() + ".zip";
                 var directoryName = fileName + "temp";
 
+                progressWindow = new IoProgressWindow {
+                    Title = $"Downloading {fileURL}",
+                    Handler = handler
+                };
+                _ = progressWindow.ShowDialog(Program.Desktop.MainWindow);
+
+
                 //download and unzip to a temp directory
-                await DownloadFile(new Uri(fileURL), fileName);
+                await DownloadFile(new Uri(fileURL), fileName, progressWindow, handler, cts);
                 if (Directory.Exists(directoryName))
                 {
                     Directory.Delete(directoryName, true);
@@ -346,15 +355,43 @@ internal sealed partial class Updater
                 var fileName = "windows_" + latest.ToString() + ".zip";
                 var directoryName = fileName + "temp";
 
+                 progressWindow = new IoProgressWindow {
+                     Title = $"Downloading {fileURL}",
+                     Handler = handler
+                 };
+                _ = progressWindow.ShowDialog(Program.Desktop.MainWindow);
+
+
                 //await ShowProgressWindow(fileURL, handler);
                 //download and unzip to a temp directory
-                await DownloadFile(new Uri(fileURL), fileName);
+                await DownloadFile(new Uri(fileURL), fileName, progressWindow, handler, cts);
 
                 if (Directory.Exists(directoryName))
                 {
                     Directory.Delete(directoryName, true);
                 }
-                System.IO.Compression.ZipFile.ExtractToDirectory(fileName, directoryName);
+
+                float progress = DownloadProgressPercentage/100.0f;
+
+                Directory.CreateDirectory(directoryName);
+                List<Task> tasks = new List<Task>();
+                List<FileStream> fileStreams = new List<FileStream>();
+                using (ZipArchive archive = ZipFile.OpenRead(fileName))
+                {
+                    foreach (ZipArchiveEntry entry in archive.Entries)
+                    {
+                        using (Stream zipStream = entry.Open())
+                        {
+                            float deltaProgress = 1 / (float)archive.Entries.Count * (100 - DownloadProgressPercentage);
+                            progress += deltaProgress;
+                            handler.UpdateProgress(deltaProgress, $"{float.Floor(DownloadProgressPercentage + progress)}%");
+
+                            FileStream f = new FileStream($"{directoryName}/{entry.Name}", FileMode.CreateNew);
+                            await zipStream.CopyToAsync(f);
+                            f.Close();
+                        }
+                    }
+                }
 
                 var currentDirectory = Directory.GetCurrentDirectory();
 
