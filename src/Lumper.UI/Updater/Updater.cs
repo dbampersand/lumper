@@ -26,7 +26,7 @@ using NLog.Targets;
 using SharpCompress.Archives;
 using SharpCompress.Common;
 
-internal sealed partial class Updater
+sealed partial class Updater
 {
     [GeneratedRegex(@"^(\d+)\.(\d+)\.(\d+)")]
     private static partial Regex VersionRegex();
