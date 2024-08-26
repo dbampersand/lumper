@@ -1,9 +1,12 @@
 namespace Lumper.Lib.BSP.Lumps.BspLumps;
 
+using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
 using Bsp.Enum;
 using Enum;
 using IO;
@@ -20,7 +23,7 @@ using Struct;
 /// The pakfile lump (aka paklump) is just a zip archive for storing assets in the BSP.
 /// The overall archive is always uncompressed, but each item may be LZMA compressed.
 /// </summary>
-public class PakfileLump(BspFile parent) : ManagedLump<BspLumpType>(parent), IFileBackedLump
+public partial class PakfileLump(BspFile parent) : ManagedLump<BspLumpType>(parent), IFileBackedLump
 {
     public List<PakfileEntry> Entries { get; private set; } = [];
 
@@ -37,6 +40,91 @@ public class PakfileLump(BspFile parent) : ManagedLump<BspLumpType>(parent), IFi
     public ZipArchive Zip { get; private set; } = null!;
 
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+
+    // As per https://github.com/ValveSoftware/source-sdk-2013/blob/master/mp/src/utils/vbsp/cubemap.cpp
+    // Matches cubemap names which are formatted as cX_cY_cZ.vtf or cubemapdefault.vtf, including .hdr.vtf versions, where X Y Z are the cubemap's origin
+    // https://github.com/ValveSoftware/source-sdk-2013/blob/master/mp/src/utils/vbsp/cubemap.cpp
+    [GeneratedRegex("materials/maps/(.*)/((c-?d+_-?d+_-?d+(.hdr)*.vtf)|(cubemapdefault(.hdr)*.vtf))")]
+    public static partial Regex CubemapRegex();
+    /// <summary>
+    /// Updates all path references in the PakFileLump from oldPath to newPath, 
+    /// i.e. if a VMT references a VTF, it will be updated.
+    /// </summary>
+    public void UpdatePathReferences(string newPath, string oldPath)
+    {
+        var opSplit = oldPath.Split('/');
+        var npSplit = newPath.Split('/');
+
+        // VMTs can reference VTFs ignoring the root directory and without the extension
+        oldPath = string.Join('/', opSplit[1..]);
+        newPath = string.Join('/', npSplit[1..]);
+        oldPath = Path.ChangeExtension(oldPath, "").TrimEnd('.');
+        newPath = Path.ChangeExtension(newPath, "").TrimEnd('.');
+
+        foreach (PakfileEntry entry in Entries)
+        {
+            string entryString = Encoding.Default.GetString(entry.GetReadOnlyStream().ToArray());
+            string newString = entryString.Replace(oldPath, newPath, StringComparison.OrdinalIgnoreCase);
+
+            if (newString != entryString)
+            {
+                entry.UpdateData(Encoding.Default.GetBytes(newString));
+            }
+
+        }
+    }
+    /// <summary>
+    /// Gets the default cubemap path as Source uses the filename when searching. 
+    /// Returns a dictionary with the key as the old string 
+    /// and the value as the new string
+    /// </summary>
+    public Dictionary<string, string> GetCubemapsToChange(string newFileName)
+    {
+        string baseFilename = Path.GetFileNameWithoutExtension(newFileName);
+        var entriesModified = new Dictionary<string, string>();
+
+        foreach (PakfileEntry entry in Entries)
+        {
+            Match match = CubemapRegex().Match(entry.Key);
+            if (match.Success)
+            {
+                GroupCollection m = match.Groups;
+                entriesModified.Add(entry.Key, entry.Key.Replace(m[3].Value, baseFilename));
+            }
+        }
+
+        return entriesModified;
+    }
+
+    /// <summary>
+    /// Renames the cubemap path as Source uses the filename when searching.
+    /// Returns a dictionary with the key as the old string 
+    /// and the value as the new string
+    /// </summary>
+    public Dictionary<string,string> RenameCubemapsPath(string newFileName)
+    {
+        string baseFilename = Path.GetFileNameWithoutExtension(newFileName);
+        var entriesModified = new Dictionary<string, string>();
+
+        foreach (PakfileEntry entry in Entries)
+        {
+            Match match = CubemapRegex().Match(entry.Key);
+            if (match.Success)
+            {
+                // add the old key so we can update the UI later
+                string oldString = entry.Key;
+
+                GroupCollection m = match.Groups;
+                entry.Key = entry.Key.Replace(m[3].Value, baseFilename);
+                entry.IsModified = true;
+
+                entriesModified.Add(oldString,entry.Key);
+            }
+        }
+        IsModified = true;
+        UpdateZip();
+        return entriesModified;
+    }
 
     public override void Read(BinaryReader reader, long length, IoHandler? handler = null)
     {

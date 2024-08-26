@@ -67,7 +67,7 @@ public partial class VtfBrowserViewModel : ViewModelWithView<VtfBrowserViewModel
                 // Can appear to be stupid slow in the UI, but this stuff is fine, it's Avalonia render stuff.
                 return vtfs.Items
                     .Where(item =>
-                        (showCubemaps || !CubemapRegex().IsMatch(item.Name)) &&
+                        (showCubemaps || !Lumper.Lib.BSP.Lumps.BspLumps.PakfileLump.CubemapRegex().IsMatch(item.Name)) &&
                         (string.IsNullOrWhiteSpace(search) || matcher.Match(item.Name))
                     )
                     .OrderBy(y => y.Name)
@@ -100,10 +100,4 @@ public partial class VtfBrowserViewModel : ViewModelWithView<VtfBrowserViewModel
             .Switch()
             .Subscribe();
     }
-
-    // Matches cubemap names which are formatted as cX_cY_cZ.vtf or cubemapdefault.vtf, including .hdr.vtf versions
-    // X Y Z are the cubemap's origin
-    // https://github.com/ValveSoftware/source-sdk-2013/blob/master/mp/src/utils/vbsp/cubemap.cpp
-    [GeneratedRegex(@"^((c-?\d+_-?\d+_-?\d+)|cubemapdefault)(\.hdr){0,}\.vtf$")]
-    private static partial Regex CubemapRegex();
 }
